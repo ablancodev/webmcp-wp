@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test de Endpoints WebMCP</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; }
+        h2 { color: #34495e; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #2980b9; }
+        button.success { background: #27ae60; }
+        button.danger { background: #e74c3c; }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .status.ok { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de Endpoints WebMCP</h1>
+
+    <div class="card">
+        <h2>Configuración</h2>
+        <label>
+            <strong>URL del sitio:</strong>
+            <input type="text" id="siteUrl" style="width: 400px;" placeholder="http://localhost/woo">
+        </label>
+        <button onclick="saveConfig()">Guardar</button>
+        <p id="apiUrl" style="color: #7f8c8d; margin-top: 10px;"></p>
+    </div>
+
+    <div class="card">
+        <h2>📦 Productos</h2>
+        <div class="test-grid">
+            <button onclick="testEndpoint('products/search')">🔍 Buscar Productos</button>
+            <button onclick="testEndpoint('products/search?query=test')">🔍 Buscar "test"</button>
+            <button onclick="testEndpoint('products/search?limit=3')">🔍 Buscar (límite 3)</button>
+            <button onclick="testProductById()">📦 Ver Producto por ID</button>
+            <button onclick="testEndpoint('products/categories')">📁 Listar Categorías</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🛒 Carrito</h2>
+        <div class="test-grid">
+            <button onclick="testEndpoint('cart')" class="success">👜 Ver Carrito</button>
+            <button onclick="testAddToCart()" class="success">➕ Añadir al Carrito</button>
+            <button onclick="testRemoveFromCart()" class="danger">🗑️ Eliminar del Carrito</button>
+            <button onclick="testEndpoint('checkout/url')">💳 URL Checkout</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>📊 Resultado</h2>
+        <div id="status"></div>
+        <pre id="output">Esperando prueba...</pre>
+    </div>
+
+    <div class="card">
+        <h2>🔧 Debug Info</h2>
+        <button onclick="showDebugInfo()">Mostrar Info de Debug</button>
+        <button onclick="clearOutput()">Limpiar</button>
+        <pre id="debug"></pre>
+    </div>
+
+    <script>
+        let baseUrl = '';
+        let apiUrl = '';
+
+        function loadConfig() {
+            const saved = localStorage.getItem('webmcp_site_url');
+            if (saved) {
+                document.getElementById('siteUrl').value = saved;
+                baseUrl = saved;
+                apiUrl = baseUrl + '/wp-json/webmcp/v1/';
+                document.getElementById('apiUrl').textContent = 'API URL: ' + apiUrl;
+            } else {
+                // Detectar automáticamente
+                const currentUrl = window.location.origin + window.location.pathname;
+                const guessedUrl = currentUrl.substring(0, currentUrl.indexOf('/wp-content'));
+                document.getElementById('siteUrl').value = guessedUrl;
+                saveConfig();
+            }
+        }
+
+        function saveConfig() {
+            const url = document.getElementById('siteUrl').value;
+            localStorage.setItem('webmcp_site_url', url);
+            loadConfig();
+        }
+
+        async function testEndpoint(endpoint, method = 'GET', data = null) {
+            const output = document.getElementById('output');
+            const status = document.getElementById('status');
+
+            try {
+                status.innerHTML = `<span class="status">⏳ Probando: ${method} ${endpoint}</span>`;
+                output.textContent = 'Cargando...';
+
+                const url = apiUrl + endpoint;
+                const options = {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include', // Incluir cookies
+                };
+
+                if (data && method !== 'GET') {
+                    options.body = JSON.stringify(data);
+                }
+
+                console.log('🔍 Llamando a:', url, options);
+
+                const response = await fetch(url, options);
+                const result = await response.json();
+
+                if (response.ok) {
+                    status.innerHTML = `<span class="status ok">✅ ${response.status} ${response.statusText}</span>`;
+                    output.textContent = JSON.stringify(result, null, 2);
+                    console.log('✅ Resultado:', result);
+                } else {
+                    status.innerHTML = `<span class="status error">❌ ${response.status} ${response.statusText}</span>`;
+                    output.textContent = JSON.stringify(result, null, 2);
+                    console.error('❌ Error:', result);
+                }
+
+            } catch (error) {
+                status.innerHTML = `<span class="status error">❌ Error de red</span>`;
+                output.textContent = `Error: ${error.message}\n\n${error.stack}`;
+                console.error('❌ Error de red:', error);
+            }
+        }
+
+        function testProductById() {
+            const id = prompt('ID del producto:', '1');
+            if (id) {
+                testEndpoint(`products/${id}`);
+            }
+        }
+
+        function testAddToCart() {
+            const productId = prompt('ID del producto:', '1');
+            const quantity = prompt('Cantidad:', '1');
+            if (productId) {
+                testEndpoint('cart/add', 'POST', {
+                    product_id: parseInt(productId),
+                    quantity: parseInt(quantity)
+                });
+            }
+        }
+
+        function testRemoveFromCart() {
+            const cartKey = prompt('Cart item key (ver en el resultado de "Ver Carrito"):');
+            if (cartKey) {
+                testEndpoint('cart/remove', 'POST', {
+                    cart_item_key: cartKey
+                });
+            }
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = 'Esperando prueba...';
+            document.getElementById('status').innerHTML = '';
+            document.getElementById('debug').textContent = '';
+        }
+
+        async function showDebugInfo() {
+            const debug = document.getElementById('debug');
+            const info = {
+                sitio: baseUrl,
+                api_url: apiUrl,
+                user_agent: navigator.userAgent,
+                cookies: document.cookie ? 'Cookies habilitadas' : 'Sin cookies',
+                webmcp_disponible: 'modelContext' in navigator,
+                timestamp: new Date().toISOString()
+            };
+
+            // Probar endpoint de salud
+            try {
+                const response = await fetch(baseUrl + '/wp-json/', {credentials: 'include'});
+                const wpData = await response.json();
+                info.wordpress = {
+                    name: wpData.name,
+                    url: wpData.url,
+                    routes: wpData.routes ? Object.keys(wpData.routes).filter(r => r.includes('webmcp')).length : 0
+                };
+            } catch (e) {
+                info.wordpress_error = e.message;
+            }
+
+            debug.textContent = JSON.stringify(info, null, 2);
+        }
+
+        // Auto-cargar configuración
+        loadConfig();
+
+        console.log('%c🧪 Test de Endpoints WebMCP cargado', 'font-size: 16px; color: #3498db; font-weight: bold');
+        console.log('API URL:', apiUrl);
+    </script>
+</body>
+</html>

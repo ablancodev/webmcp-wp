@@ -1,0 +1,45 @@
+# WordPress
+.DS_Store
+thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+error_log
+
+# Dependencies
+/node_modules/
+/vendor/
+
+# Build files
+/build/
+/dist/
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+.project
+.settings/
+*.tmproj
+nbproject/
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Environment
+.env
+.env.local

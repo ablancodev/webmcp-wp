@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test WebMCP - WooCommerce</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; margin-top: 0; }
+        h2 { color: #34495e; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .status { font-size: 24px; margin: 10px 0; }
+        .status.ok { color: #27ae60; }
+        .status.error { color: #e74c3c; }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover { background: #2980b9; }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        code {
+            background: #ecf0f1;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        .tool-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .tool-item {
+            background: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        #output {
+            min-height: 100px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test de WebMCP para WooCommerce</h1>
+
+    <div class="card">
+        <h2>1. Estado del Navegador</h2>
+        <div id="browser-status"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. Estado de WebMCP</h2>
+        <div id="webmcp-status"></div>
+    </div>
+
+    <div class="card">
+        <h2>3. Herramientas Registradas</h2>
+        <div id="tools-list"></div>
+    </div>
+
+    <div class="card">
+        <h2>4. Pruebas Rápidas</h2>
+        <button onclick="testSearchProducts()">🔍 Buscar Productos</button>
+        <button onclick="testGetCategories()">📁 Listar Categorías</button>
+        <button onclick="testGetCart()">🛒 Ver Carrito</button>
+        <button onclick="clearOutput()">🗑️ Limpiar</button>
+
+        <h3>Resultado:</h3>
+        <pre id="output">Esperando pruebas...</pre>
+    </div>
+
+    <div class="card">
+        <h2>5. Comandos de Consola</h2>
+        <p>Abre la consola (F12) y prueba estos comandos:</p>
+        <pre>// Verificar WebMCP
+console.log('modelContext' in window.navigator);
+
+// Ver estado completo
+webmcpDebug.checkStatus();
+
+// Listar herramientas
+webmcpDebug.listTools();
+
+// Ver información
+console.log(webmcpDebug);</pre>
+    </div>
+
+    <script>
+        // Función para mostrar output
+        function showOutput(title, data) {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            output.textContent = `[${timestamp}] ${title}\n\n${JSON.stringify(data, null, 2)}`;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = 'Esperando pruebas...';
+        }
+
+        // Verificar estado del navegador
+        function checkBrowserStatus() {
+            const statusDiv = document.getElementById('browser-status');
+            const isChrome = /Chrome/.test(navigator.userAgent);
+            const hasModelContext = 'modelContext' in window.navigator;
+
+            let html = '<div>';
+            html += `<p><strong>Navegador:</strong> ${navigator.userAgent.split('/')[0]}</p>`;
+            html += `<p><strong>Chrome detectado:</strong> <span class="status ${isChrome ? 'ok' : 'error'}">${isChrome ? '✅ Sí' : '❌ No'}</span></p>`;
+            html += `<p><strong>navigator.modelContext:</strong> <span class="status ${hasModelContext ? 'ok' : 'error'}">${hasModelContext ? '✅ Disponible' : '❌ No disponible'}</span></p>`;
+
+            if (!hasModelContext) {
+                html += '<div style="background: #fff3cd; padding: 10px; border-radius: 5px; margin-top: 10px;">';
+                html += '<strong>⚠️ WebMCP no está disponible</strong><br>';
+                html += 'Necesitas:<br>';
+                html += '1. Chrome 146+ (o Chrome Canary)<br>';
+                html += '2. Activar: <code>chrome://flags/#enable-experimental-web-platform-features</code><br>';
+                html += '3. Reiniciar el navegador';
+                html += '</div>';
+            }
+            html += '</div>';
+            statusDiv.innerHTML = html;
+        }
+
+        // Verificar WebMCP
+        function checkWebMCPStatus() {
+            const statusDiv = document.getElementById('webmcp-status');
+
+            if (typeof webmcpDebug !== 'undefined') {
+                let html = '<div class="status ok">✅ WebMCP para WooCommerce cargado</div>';
+                html += `<p><strong>Tienda:</strong> ${webmcpDebug.shopInfo.name}</p>`;
+                html += `<p><strong>URL:</strong> ${webmcpDebug.shopInfo.url}</p>`;
+                html += `<p><strong>Moneda:</strong> ${webmcpDebug.shopInfo.currency} (${webmcpDebug.shopInfo.currencySymbol})</p>`;
+                html += `<p><strong>API REST:</strong> ${webmcpDebug.shopInfo.restUrl}</p>`;
+                statusDiv.innerHTML = html;
+            } else {
+                statusDiv.innerHTML = '<div class="status error">❌ El plugin WebMCP no se ha cargado</div>';
+            }
+        }
+
+        // Listar herramientas
+        function listTools() {
+            const toolsDiv = document.getElementById('tools-list');
+
+            if (typeof webmcpDebug !== 'undefined') {
+                let html = `<p><strong>Total de herramientas:</strong> ${webmcpDebug.toolsRegistered.length}</p>`;
+                html += '<div class="tool-list">';
+                webmcpDebug.toolsRegistered.forEach(tool => {
+                    html += `<div class="tool-item">🛠️ ${tool}</div>`;
+                });
+                html += '</div>';
+                toolsDiv.innerHTML = html;
+            } else {
+                toolsDiv.innerHTML = '<p class="status error">No hay herramientas registradas</p>';
+            }
+        }
+
+        // Tests funcionales
+        async function testSearchProducts() {
+            if (typeof webmcpDebug === 'undefined') {
+                alert('WebMCP no está cargado. Verifica que el plugin esté activado.');
+                return;
+            }
+
+            try {
+                showOutput('Buscando productos...', { status: 'loading' });
+
+                const response = await fetch(webmcpDebug.shopInfo.restUrl + 'products/search?limit=5');
+                const data = await response.json();
+
+                showOutput('Resultados de búsqueda de productos', data);
+            } catch (error) {
+                showOutput('Error', { error: error.message });
+            }
+        }
+
+        async function testGetCategories() {
+            if (typeof webmcpDebug === 'undefined') {
+                alert('WebMCP no está cargado.');
+                return;
+            }
+
+            try {
+                showOutput('Obteniendo categorías...', { status: 'loading' });
+
+                const response = await fetch(webmcpDebug.shopInfo.restUrl + 'products/categories');
+                const data = await response.json();
+
+                showOutput('Categorías de productos', data);
+            } catch (error) {
+                showOutput('Error', { error: error.message });
+            }
+        }
+
+        async function testGetCart() {
+            if (typeof webmcpDebug === 'undefined') {
+                alert('WebMCP no está cargado.');
+                return;
+            }
+
+            try {
+                showOutput('Obteniendo carrito...', { status: 'loading' });
+
+                const response = await fetch(webmcpDebug.shopInfo.restUrl + 'cart');
+                const data = await response.json();
+
+                showOutput('Contenido del carrito', data);
+            } catch (error) {
+                showOutput('Error', { error: error.message });
+            }
+        }
+
+        // Inicializar checks al cargar
+        window.addEventListener('DOMContentLoaded', () => {
+            checkBrowserStatus();
+
+            // Esperar un poco para que se cargue el script de WordPress
+            setTimeout(() => {
+                checkWebMCPStatus();
+                listTools();
+            }, 500);
+        });
+
+        // Log en consola
+        console.log('%c🧪 Página de Test WebMCP Cargada', 'font-size: 16px; color: #3498db; font-weight: bold');
+        console.log('Comandos disponibles: webmcpDebug.checkStatus() | webmcpDebug.listTools()');
+    </script>
+</body>
+</html>
